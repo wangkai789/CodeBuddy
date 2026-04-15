@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库配置 - 南乐HQMS上报系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .flash.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        #test_result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        #test_result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        #test_result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ 数据库配置</h1>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message|safe }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="card">
+            <h2>🔧 连接参数</h2>
+
+            <form method="POST" action="{{ url_for('config_page') }}" id="config_form">
+                <div class="form-group">
+                    <label for="server">服务器地址</label>
+                    <input type="text" id="server" name="server" value="{{ config.server }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="database">数据库名称</label>
+                    <input type="text" id="database" name="database" value="{{ config.database }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" value="{{ config.username }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" value="{{ config.password }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="driver">ODBC驱动</label>
+                    <select id="driver" name="driver">
+                        <option value="ODBC Driver 17 for SQL Server" {% if config.driver == 'ODBC Driver 17 for SQL Server' %}selected{% endif %}>ODBC Driver 17 for SQL Server</option>
+                        <option value="SQL Server" {% if config.driver == 'SQL Server' %}selected{% endif %}>SQL Server</option>
+                        <option value="SQL Server Native Client 11.0" {% if config.driver == 'SQL Server Native Client 11.0' %}selected{% endif %}>SQL Server Native Client 11.0</option>
+                    </select>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button type="button" class="btn btn-success" onclick="testConnection()">🔌 测试连接</button>
+                    <button type="submit" class="btn btn-primary">💾 保存配置</button>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">↩️ 返回</a>
+                </div>
+
+                <div id="test_result"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function testConnection() {
+            var resultDiv = document.getElementById('test_result');
+            resultDiv.className = '';
+            resultDiv.textContent = '正在测试连接...';
+            resultDiv.style.display = 'block';
+
+            var formData = new FormData();
+            formData.append('server', document.getElementById('server').value);
+            formData.append('database', document.getElementById('database').value);
+            formData.append('username', document.getElementById('username').value);
+            formData.append('password', document.getElementById('password').value);
+            formData.append('driver', document.getElementById('driver').value);
+
+            fetch('{{ url_for("test_connection") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    resultDiv.className = 'success';
+                    resultDiv.textContent = '✅ ' + data.message;
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ ' + data.message;
+                }
+            })
+            .catch(error => {
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ 测试失败: ' + error.message;
+            });
+        }
+    </script>
+</body>
+</html>

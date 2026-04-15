@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>南乐HQMS上报系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .config-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .config-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .config-info strong {
+            color: #333;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .flash.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .flash.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+        .date-row {
+            display: flex;
+            gap: 20px;
+        }
+        .date-row .form-group {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 南乐HQMS上报系统</h1>
+            <p>病案首页数据导出工具</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message|safe }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="card">
+            <h2>📊 运行参数</h2>
+
+            <div class="config-info">
+                <p><strong>服务器:</strong> {{ config.server }}</p>
+                <p><strong>数据库:</strong> {{ config.database }}</p>
+                <p><strong>模板文件:</strong> D:\codebuddy\模板\hqmsts01.CSV</p>
+                <p><strong>输出目录:</strong> D:\codebuddy\输出</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('run_task') }}">
+                <div class="form-group">
+                    <label for="stored_procedure">存储过程</label>
+                    <input type="text" id="stored_procedure" name="stored_procedure"
+                           value="yiyuandb..FirstPage_exoprt">
+                </div>
+
+                <div class="date-row">
+                    <div class="form-group">
+                        <label for="start_date">开始日期</label>
+                        <input type="date" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">结束日期</label>
+                        <input type="date" id="end_date" name="end_date" required>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button type="submit" class="btn btn-primary">🚀 执行导出</button>
+                    <a href="{{ url_for('config_page') }}" class="btn btn-secondary">⚙️ 修改配置</a>
+                    <button type="button" class="btn btn-secondary" onclick="openOutputDir()">📂 打开输出目录</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2024 南乐HQMS上报系统 | Power by Python Flask</p>
+        </div>
+    </div>
+
+    <script>
+        // 设置默认日期为上个月
+        function formatDate(date) {
+            var year = date.getFullYear();
+            var month = (date.getMonth() + 1).toString().padStart(2, '0');
+            var day = date.getDate().toString().padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        }
+        
+        function getLastMonthRange() {
+            var today = new Date();
+            var year = today.getFullYear();
+            var month = today.getMonth(); // 0-11（4月=3）
+            
+            // 上个月
+            var lastMonth = month === 0 ? 12 : month;
+            var lastMonthYear = month === 0 ? year - 1 : year;
+            
+            // 上个月1号
+            var startDate = new Date(lastMonthYear, lastMonth - 1, 1);
+            
+            // 上个月最后一天：本月1号减1天
+            var endDate = new Date(year, month, 0);
+            
+            return { start: startDate, end: endDate };
+        }
+        
+        var dateRange = getLastMonthRange();
+        document.getElementById('start_date').value = formatDate(dateRange.start);
+        document.getElementById('end_date').value = formatDate(dateRange.end);
+
+        // 打开输出目录
+        function openOutputDir() {
+            fetch('/open-output-dir')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.open('file:///D:/codebuddy/输出');
+                    } else {
+                        alert('无法打开目录: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    // 如果API失败，直接尝试打开
+                    window.open('file:///D:/codebuddy/输出');
+                });
+        }
+    </script>
+</body>
+</html>
