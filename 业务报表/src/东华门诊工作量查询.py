@@ -4,6 +4,7 @@ import shutil
 import time
 import sys
 import requests
+from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
 
@@ -18,8 +19,8 @@ if len(sys.argv) > 1:
 else:
     doctor_name = input("请输入医生姓名: ").strip()
 
-output_file = rf'D:\文档\正骨医院\20260226职称数据\{doctor_name}.xlsx'
-temp_file = rf'D:\文档\正骨医院\20260226职称数据\{doctor_name}_temp.xlsx'
+output_file = rf'D:\文档\正骨医院\20260226职称数据\{doctor_name}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+temp_file = rf'D:\文档\正骨医院\20260226职称数据\{doctor_name}_{datetime.now().strftime("%Y%m%d_%H%M%S")}_temp.xlsx'
 
 files = [
     '2019医生组出入院统计报表.xlsx',
@@ -27,9 +28,13 @@ files = [
     '2021医生组出入院统计报表.xlsx',
     '2022医生组出入院统计报表.xlsx',
     '2023医生组出入院统计报表.xlsx',
+    '2023医生组出入院统计报表(康复).xlsx',
     '2024医生组出入院统计报表.xlsx',
+    '2024医生组出入院统计报表(康复).xlsx',
     '2025医生组出入院统计报表.xlsx',
-    '202601-03医生组出入院统计报表.xlsx'
+    '2025医生组出入院统计报表(康复).xlsx',
+    '202601-04.15医生组出入院统计报表.xlsx',   
+    '202601-04.15医生组出入院统计报表(康复).xlsx'
 ]
 
 yearly_data = {}
@@ -39,8 +44,8 @@ for filename in files:
     try:
         # 提取期间（年度或年月）
         year = filename[:4]
-        if filename.startswith('202601-03'):
-            period = '2026-01~03'  # 2026年1-3月
+        if filename.startswith('202601-04.15'):
+            period = '202601~04.15'  # 2026年1-3月
         else:
             period = year  # 其他按年度
         
@@ -66,15 +71,15 @@ for filename in files:
                 break
         
         if doctor_col:
-            mask = df[doctor_col].astype(str).str.contains(doctor_name, na=False)
+            mask = df[doctor_col].astype(str).str.strip() == doctor_name.strip()
             if mask.any():
                 matched = df[mask].copy()
                 
                 if period not in yearly_data:
                     yearly_data[period] = {
                         '期间': period,
-                        '门诊人次': 0,
-                        '出院人次': 0
+                        '医师姓名': doctor_name,
+                        '门诊人次': 0
                     }
                 
                 # 当门诊人次(不含零费用)有值时，优先使用该值
@@ -87,8 +92,6 @@ for filename in files:
                 else:
                     yearly_data[period]['门诊人次'] += outpatient.sum()
                 
-                yearly_data[period]['出院人次'] += pd.to_numeric(matched['出院人次'], errors='coerce').sum()
-                
                 print(f"  {filename}: 找到 {(~matched[doctor_col].isna()).sum()} 条记录")
     except Exception as e:
         print(f"Error reading {filename}: {e}")
@@ -97,18 +100,31 @@ if yearly_data:
     result_df = pd.DataFrame(list(yearly_data.values()))
     result_df = result_df.sort_values('期间')
     
-    cols = ['期间', '门诊人次', '出院人次']
+    cols = ['期间', '医师姓名', '门诊人次']
     result_df = result_df[cols]
     
     total_row = pd.DataFrame([{
         '期间': '合计',
-        '门诊人次': result_df['门诊人次'].sum(),
-        '出院人次': result_df['出院人次'].sum()
+        '医师姓名': '',
+        '门诊人次': result_df['门诊人次'].sum()
     }])
     result_df = pd.concat([result_df, total_row], ignore_index=True)
     
     if os.path.exists(temp_file):
-        os.remove(temp_file)
+        try:
+            os.remove(temp_file)
+        except:
+            pass
+    
+    if os.path.exists(output_file):
+        try:
+            os.remove(output_file)
+        except:
+            time.sleep(1)
+            try:
+                os.remove(output_file)
+            except:
+                pass
     
     wb = Workbook()
     ws = wb.active
@@ -130,8 +146,8 @@ if yearly_data:
             cell.border = border
     
     ws.column_dimensions['A'].width = 14
-    ws.column_dimensions['B'].width = 22
-    ws.column_dimensions['C'].width = 12
+    ws.column_dimensions['B'].width = 12
+    ws.column_dimensions['C'].width = 16
     
     ws.row_dimensions[1].height = 20
     for row_idx in range(2, len(result_df) + 2):
@@ -139,37 +155,44 @@ if yearly_data:
     
     wb.save(temp_file)
     
-    time.sleep(0.5)
-    if os.path.exists(output_file):
-        try:
-            os.remove(output_file)
-        except:
-            pass
+    time.sleep(1)
+    # 多次尝试删除旧文件
+    for _ in range(3):
+        if os.path.exists(output_file):
+            try:
+                os.remove(output_file)
+                break
+            except:
+                time.sleep(0.5)
+        else:
+            break
+    
     shutil.move(temp_file, output_file)
     
     print(f"\n完成！共汇总 {len(yearly_data)} 个期间")
     print(f"结果已保存到: {output_file}")
     
+    # === 钉钉消息已屏蔽 ===
     # 发送结果到钉钉
-    message = f"【{doctor_name}】医生数据汇总\n\n"
-    for _, row in result_df.iterrows():
-        message += f"{row['期间']}: 门诊人次={row['门诊人次']}, 出院人次={row['出院人次']}\n"
-    
-    data = {
-        "msgtype": "text",
-        "text": {
-            "content": message
-        }
-    }
-    
-    try:
-        response = requests.post(DINGTALK_WEBHOOK, json=data, timeout=10)
-        if response.json().get('errcode') == 0:
-            print("结果已发送到钉钉")
-        else:
-            print(f"钉钉发送失败: {response.text}")
-    except Exception as e:
-        print(f"钉钉发送异常: {e}")
+    # message = f"【{doctor_name}】医生数据汇总\n\n"
+    # for _, row in result_df.iterrows():
+    #     message += f"{row['期间']}: {row['医师姓名']} 门诊人次={row['门诊人次']}\n"
+    # 
+    # data = {
+    #     "msgtype": "text",
+    #     "text": {
+    #         "content": message
+    #     }
+    # }
+    # 
+    # try:
+    #     response = requests.post(DINGTALK_WEBHOOK, json=data, timeout=10)
+    #     if response.json().get('errcode') == 0:
+    #         print("结果已发送到钉钉")
+    #     else:
+    #         print(f"钉钉发送失败: {response.text}")
+    # except Exception as e:
+    #     print(f"钉钉发送异常: {e}")
         
 else:
     print("未找到任何记录")

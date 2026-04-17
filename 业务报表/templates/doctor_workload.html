@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>东华工作量查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #11998e;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #11998e;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .result-box.show {
+            display: block;
+        }
+        .result-box.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result-box.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #11998e;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .dir-input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .dir-input-group input {
+            flex: 1;
+        }
+        .dir-input-group .btn {
+            margin-right: 0;
+        }
+        /* 配置信息 */
+        .config-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .config-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .config-info strong {
+            color: #333;
+        }
+        /* 历史记录样式 */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .history-table th,
+        .history-table td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .history-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        .history-table tr:hover {
+            background: #f5f5f5;
+        }
+        .history-table td {
+            color: #666;
+        }
+        .history-table .doctor-name {
+            font-weight: bold;
+            color: #11998e;
+        }
+        .history-table .file-name {
+            font-family: Consolas, monospace;
+            font-size: 14px;
+        }
+        .empty-history {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+        }
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 {
+            color: #333;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .modal-close:hover {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>东华工作量查询</h1>
+            <p>医师门诊人次统计</p>
+        </div>
+
+        <div class="card">
+            <h2>输入医师姓名</h2>
+
+            <div class="config-info">
+                <p><strong>数据目录:</strong> <span id="currentDataDir">加载中...</span></p>
+                <p><strong>输出目录:</strong> <span id="currentOutputDir">加载中...</span></p>
+                <button class="btn btn-warning" onclick="openConfigModal()" style="margin-top:10px;">
+                    修改目录配置
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label for="doctor_name">医师姓名</label>
+                <input type="text" id="doctor_name" name="doctor_name" 
+                       placeholder="请输入医师姓名" autocomplete="off">
+            </div>
+
+            <div class="btn-row">
+                <button type="button" class="btn btn-primary" id="btnQuery" onclick="runQuery()">
+                    查询
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="openOutputDir()">
+                    打开输出目录
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #666;">查询中，请稍候...</p>
+            </div>
+
+            <div class="result-box" id="resultBox"></div>
+        </div>
+
+
+        <div class="card">
+            <h2>查询历史记录</h2>
+            <div style="margin-bottom: 10px;">
+                <button class="btn btn-secondary" onclick="clearHistory()">清除历史记录</button>
+                <button class="btn btn-info" onclick="exportHistoryPDF()">导出PDF</button>
+            </div>
+            <div id="historyContainer">
+                <div class="empty-history">暂无查询记录</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Power by Python Flask</p>
+        </div>
+    </div>
+
+    <!-- 配置模态框 -->
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>目录配置</h3>
+                <button class="modal-close" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="config_data_dir">数据目录</label>
+                <div class="dir-input-group">
+                    <input type="text" id="config_data_dir" placeholder="例如: D:\数据\data">
+                    <button class="btn btn-secondary" onclick="browseDir('config_data_dir')">浏览</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="config_output_dir">输出目录</label>
+                <div class="dir-input-group">
+                    <input type="text" id="config_output_dir" placeholder="例如: D:\数据\输出">
+                    <button class="btn btn-secondary" onclick="browseDir('config_output_dir')">浏览</button>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+                <button class="btn btn-secondary" onclick="closeConfigModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时获取配置和历史记录
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            loadHistory();
+        });
+
+        function loadConfig() {
+            fetch('/config')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('currentDataDir').textContent = data.data_dir;
+                    document.getElementById('currentOutputDir').textContent = data.output_dir;
+                    document.getElementById('config_data_dir').value = data.data_dir;
+                    document.getElementById('config_output_dir').value = data.output_dir;
+                })
+                .catch(err => {
+                    console.error('加载配置失败:', err);
+                });
+        }
+
+        function loadHistory() {
+            fetch('/history')
+                .then(response => response.json())
+                .then(data => {
+                    renderHistory(data.history);
+                })
+                .catch(err => {
+                    console.error('加载历史记录失败:', err);
+                });
+        }
+
+        function renderHistory(history) {
+            var container = document.getElementById('historyContainer');
+            
+            if (!history || history.length === 0) {
+                container.innerHTML = '<div class="empty-history">暂无查询记录</div>';
+                return;
+            }
+
+            var tableHtml = '<table class="history-table"><thead><tr>' +
+                '<th>序号</th>' +
+                '<th>医师姓名</th>' +
+                '<th>查询时间</th>' +
+                '<th>汇总期间数</th>' +
+                '<th>查询次数</th>' +
+                '<th>文件路径</th>' +
+                '<th>操作</th>' +
+                '</tr></thead><tbody>';
+
+            history.forEach(function(item, index) {
+                var filePath = item.output_path || '';
+                tableHtml += '<tr>' +
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td class="doctor-name">' + item.doctor_name + '</td>' +
+                    '<td>' + item.query_time + '</td>' +
+                    '<td>' + item.periods_count + ' 个</td>' +
+                    '<td>' + (item.query_count || 1) + ' 次</td>' +
+                    '<td style="font-size: 12px; max-width: 200px; word-break: break-all;">' + filePath + '</td>' +
+                    '<td style="white-space: nowrap;">' +
+                    '<button class="btn btn-info btn-sm" style="padding: 3px 8px; margin-right: 3px;" onclick="openPDF(\'' + filePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">打开PDF</button>' +
+                    '<button class="btn btn-danger btn-sm" style="padding: 3px 8px;" onclick="deleteRecord(' + index + ', \'' + filePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">删除</button>' +
+                    '</td>' +
+                    '</tr>';
+            });
+
+            tableHtml += '</tbody></table>';
+            container.innerHTML = tableHtml;
+        }
+
+        function exportRecordPDF(filePath) {
+            if (!filePath) {
+                alert('文件路径不存在');
+                return;
+            }
+            fetch('/export-record-pdf', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({file_path: filePath})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('PDF已导出: ' + data.pdf_path);
+                } else {
+                    alert('导出失败: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('导出失败: ' + err.message);
+            });
+        }
+
+        function openPDF(xlsxPath) {
+            if (!xlsxPath) {
+                alert('文件路径不存在');
+                return;
+            }
+            // 将xlsx路径转换为pdf路径
+            var pdfPath = xlsxPath.replace(/\\xls\\/g, '\\pdf\\').replace(/\/xls\//g, '/pdf/').replace('.xlsx', '.pdf');
+            fetch('/open-pdf?file=' + encodeURIComponent(pdfPath))
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('无法打开PDF: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert('无法打开PDF');
+                });
+        }
+
+        function deleteRecord(index, filePath) {
+            if (!confirm('确定要删除该记录及对应的文件吗？')) {
+                return;
+            }
+            fetch('/delete-record', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({index: index, file_path: filePath})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadHistory();
+                } else {
+                    alert('删除失败: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('删除失败: ' + err.message);
+            });
+        }
+
+        function exportHistoryPDF() {
+            window.location.href = '/export-history-pdf';
+        }
+
+        function clearHistory() {
+            if (!confirm('确定要清除所有历史记录吗？')) {
+                return;
+            }
+            fetch('/clear-history', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadHistory();
+                }
+            })
+            .catch(err => {
+                console.error('清除历史记录失败:', err);
+            });
+        }
+
+        function runQuery() {
+            var doctorName = document.getElementById('doctor_name').value.trim();
+
+            if (!doctorName) {
+                showResult('请输入医师姓名', false);
+                return;
+            }
+
+            var btn = document.getElementById('btnQuery');
+            var loading = document.getElementById('loading');
+            var resultBox = document.getElementById('resultBox');
+
+            btn.disabled = true;
+            loading.classList.add('show');
+            resultBox.classList.remove('show', 'success', 'error');
+
+            var formData = new FormData();
+            formData.append('doctor_name', doctorName);
+
+            fetch('/query', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.remove('show');
+                btn.disabled = false;
+
+                if (data.success) {
+                    showResult(data.message + '<br><br><a href="javascript:void(0)" onclick="openOutputDir()" style="color: #11998e;">点击打开输出目录查看文件</a>', true);
+                    loadHistory();
+                } else {
+                    showResult(data.message, false);
+                }
+            })
+            .catch(err => {
+                loading.classList.remove('show');
+                btn.disabled = false;
+                showResult('查询出错: ' + err.message, false);
+            });
+        }
+
+        function showResult(message, isSuccess) {
+            var resultBox = document.getElementById('resultBox');
+            resultBox.innerHTML = message;
+            resultBox.classList.remove('success', 'error');
+            resultBox.classList.add('show', isSuccess ? 'success' : 'error');
+        }
+
+        function openOutputDir() {
+            fetch('/open-output-dir')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('无法打开目录: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert('无法打开目录');
+                });
+        }
+
+        function openDir(dirPath) {
+            fetch('/open-dir?path=' + encodeURIComponent(dirPath))
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('无法打开目录: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert('无法打开目录');
+                });
+        }
+
+        // 配置模态框
+        function openConfigModal() {
+            document.getElementById('configModal').classList.add('show');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.remove('show');
+        }
+
+        function saveConfig() {
+            var dataDir = document.getElementById('config_data_dir').value.trim();
+            var outputDir = document.getElementById('config_output_dir').value.trim();
+
+            if (!dataDir || !outputDir) {
+                alert('请填写完整目录路径');
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('data_dir', dataDir);
+            formData.append('output_dir', outputDir);
+
+            fetch('/save-config', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('配置保存成功');
+                    closeConfigModal();
+                    loadConfig();
+                } else {
+                    alert('配置保存失败: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('配置保存出错: ' + err.message);
+            });
+        }
+
+        // 简单的目录浏览功能（通过输入路径打开）
+        function browseDir(inputId) {
+            var path = prompt('请输入目录路径:\n（例如: D:\\文档\\数据\\data）');
+            if (path) {
+                document.getElementById(inputId).value = path;
+            }
+        }
+
+        // 回车键提交
+        document.getElementById('doctor_name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                runQuery();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>东华住院量查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        .btn-info:hover {
+            background: #138496;
+        }
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .result-box.show {
+            display: block;
+        }
+        .result-box.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result-box.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .config-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .config-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .config-info strong {
+            color: #333;
+        }
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 {
+            color: #333;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .modal-close:hover {
+            color: #333;
+        }
+        /* 历史记录 */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .history-table th,
+        .history-table td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .history-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        .history-table tr:hover {
+            background: #f5f5f5;
+        }
+        .history-table .name {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .empty-history {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>东华住院量查询</h1>
+            <p>医师/护士/麻醉师工作量统计</p>
+        </div>
+
+        <div class="card">
+            <h2>查询条件</h2>
+
+            <div class="config-info">
+                <p><strong>服务器:</strong> <span id="currentServer">加载中...</span></p>
+                <p><strong>数据库:</strong> <span id="currentDatabase">加载中...</span></p>
+                <p><strong>输出目录:</strong> <span id="currentOutputDir">加载中...</span></p>
+                <button class="btn btn-warning" onclick="openConfigModal()" style="margin-top:10px;">
+                    修改数据库配置
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label for="query_type">查询类型</label>
+                <select id="query_type">
+                    <option value="">请选择查询类型</option>
+                    <option value="sp">正高职称医师</option>
+                    <option value="ap">副高职称医师</option>
+                    <option value="nurse">护士</option>
+                    <option value="anes">麻醉师</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="name">姓名</label>
+                <input type="text" id="name" placeholder="请输入查询姓名" autocomplete="off">
+            </div>
+
+            <div class="btn-row">
+                <button type="button" class="btn btn-primary" id="btnQuery" onclick="runQuery()">
+                    查询
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="openOutputDir()">
+                    打开输出目录
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #666;">查询中，请稍候...</p>
+            </div>
+
+            <div class="result-box" id="resultBox"></div>
+        </div>
+
+
+        <div class="card">
+            <h2>查询历史记录</h2>
+            <div style="margin-bottom: 10px;">
+                <button class="btn btn-secondary" onclick="clearHistory()">清除历史记录</button>
+            </div>
+            <div id="historyContainer">
+                <div class="empty-history">暂无查询记录</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Power by Python Flask</p>
+        </div>
+    </div>
+
+    <!-- 配置模态框 -->
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>数据库配置</h3>
+                <button class="modal-close" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="config_server">服务器</label>
+                <input type="text" id="config_server" placeholder="例如: 192.168.101.19">
+            </div>
+            <div class="form-group">
+                <label for="config_port">端口</label>
+                <input type="text" id="config_port" placeholder="例如: 1433">
+            </div>
+            <div class="form-group">
+                <label for="config_user">用户名</label>
+                <input type="text" id="config_user" placeholder="例如: dhuser">
+            </div>
+            <div class="form-group">
+                <label for="config_password">密码</label>
+                <input type="password" id="config_password" placeholder="请输入密码">
+            </div>
+            <div class="form-group">
+                <label for="config_database">数据库名称</label>
+                <input type="text" id="config_database" placeholder="例如: dhcc">
+            </div>
+            <div class="form-group">
+                <label for="config_output_dir">输出目录</label>
+                <input type="text" id="config_output_dir" placeholder="例如: D:\输出">
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+                <button class="btn btn-secondary" onclick="closeConfigModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var currentOutputFile = '';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            loadHistory();
+        });
+
+        function loadConfig() {
+            fetch('/config')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('currentServer').textContent = data.server;
+                    document.getElementById('currentDatabase').textContent = data.database;
+                    document.getElementById('currentOutputDir').textContent = data.output_dir;
+                    document.getElementById('config_server').value = data.server;
+                    document.getElementById('config_port').value = data.port;
+                    document.getElementById('config_user').value = data.user;
+                    document.getElementById('config_database').value = data.database;
+                    document.getElementById('config_output_dir').value = data.output_dir;
+                })
+                .catch(err => {
+                    console.error('加载配置失败:', err);
+                });
+        }
+
+        function loadHistory() {
+            fetch('/history')
+                .then(response => response.json())
+                .then(data => {
+                    renderHistory(data.history);
+                })
+                .catch(err => {
+                    console.error('加载历史记录失败:', err);
+                });
+        }
+
+        function clearHistory() {
+            if (!confirm('确定要清除所有历史记录吗？')) {
+                return;
+            }
+            fetch('/clear-history', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderHistory([]);
+                }
+            })
+            .catch(err => {
+                console.error('清除历史记录失败:', err);
+            });
+        }
+
+        function exportHistoryPDF() {
+            fetch('/history')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.history || data.history.length === 0) {
+                    alert('没有历史记录可导出');
+                    return;
+                }
+                window.location.href = '/export-history-pdf';
+            });
+        }
+
+        function exportResultPDF(filePath) {
+            if (!filePath) {
+                alert('没有可导出的文件');
+                return;
+            }
+            
+            fetch('/export-xlsx-pdf?file=' + encodeURIComponent(filePath))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult(data.message + '<br><br><a href="javascript:void(0)" onclick="openPdfDir()" style="color: #667eea;">点击打开PDF目录</a>', true);
+                } else {
+                    showResult(data.message, false);
+                }
+            })
+            .catch(err => {
+                showResult('导出PDF失败: ' + err.message, false);
+            });
+        }
+
+
+        function openPdfDir() {
+            fetch('/open-pdf-dir')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('无法打开目录: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert('无法打开目录');
+                });
+        }
+
+        function openPDF(xlsxPath) {
+            if (!xlsxPath) {
+                alert('文件路径不存在');
+                return;
+            }
+            // 将xlsx路径转换为pdf路径
+            var pdfPath = xlsxPath.replace(/\\xls\\/g, '\\pdf\\').replace(/\/xls\//g, '/pdf/').replace('.xlsx', '.pdf');
+            fetch('/open-pdf?file=' + encodeURIComponent(pdfPath))
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('无法打开PDF: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert('无法打开PDF');
+                });
+        }
+
+        function exportResultXLS(filePath) {
+            if (!filePath) {
+                alert('文件路径不存在');
+                return;
+            }
+            window.location.href = '/download-xlsx?file=' + encodeURIComponent(filePath);
+        }
+
+        function deleteRecord(index, filePath) {
+            if (!confirm('确定要删除该记录及对应的文件吗？')) {
+                return;
+            }
+            fetch('/delete-record', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({index: index, file_path: filePath})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadHistory();
+                } else {
+                    alert('删除失败: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('删除失败: ' + err.message);
+            });
+        }
+
+        function renderHistory(history) {
+            var container = document.getElementById('historyContainer');
+            
+            if (!history || history.length === 0) {
+                container.innerHTML = '<div class="empty-history">暂无查询记录</div>';
+                return;
+            }
+
+            var tableHtml = '<table class="history-table"><thead><tr>' +
+                '<th>序号</th>' +
+                '<th>姓名</th>' +
+                '<th>查询类型</th>' +
+                '<th>记录数</th>' +
+                '<th>查询时间</th>' +
+                '<th>文件路径</th>' +
+                '<th>操作</th>' +
+                '</tr></thead><tbody>';
+
+            history.forEach(function(item, index) {
+                tableHtml += '<tr>' +
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td class="name">' + item.name + '</td>' +
+                    '<td>' + item.query_type + '</td>' +
+                    '<td>' + item.row_count + '</td>' +
+                    '<td>' + item.query_time + '</td>' +
+                    '<td style="font-size: 12px; max-width: 200px; word-break: break-all;">' + (item.output_path || '') + '</td>' +
+                    '<td>' +
+                    '<button class="btn btn-info btn-sm" onclick="openPDF(\'' + (item.output_path || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">打开PDF</button>' +
+                    '</td>' +
+                    '<td><button class="btn btn-danger btn-sm" onclick="deleteRecord(' + index + ', \'' + (item.output_path || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">删除</button></td>' +
+                    '</tr>';
+            });
+
+            tableHtml += '</tbody></table>';
+            container.innerHTML = tableHtml;
+        }
+
+        function runQuery() {
+            var name = document.getElementById('name').value.trim();
+            var queryType = document.getElementById('query_type').value;
+            
+            if (!name) {
+                showResult('请输入查询姓名', false);
+                return;
+            }
+            if (!queryType) {
+                showResult('请选择查询类型', false);
+                return;
+            }
+
+            var btn = document.getElementById('btnQuery');
+            var loading = document.getElementById('loading');
+            var resultBox = document.getElementById('resultBox');
+
+            btn.disabled = true;
+            loading.classList.add('show');
+            resultBox.classList.remove('show', 'success', 'error');
+
+            var formData = new FormData();
+            formData.append('name', name);
+            formData.append('query_type', queryType);
+
+            fetch('/query', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.remove('show');
+                btn.disabled = false;
+
+                if (data.success) {
+                    showResult(data.message + '<br><br><a href="javascript:void(0)" onclick="openOutputDir()" style="color: #667eea;">点击打开输出目录查看文件</a>', true);
+                    currentOutputFile = data.output_file;
+                    loadHistory();
+                } else {
+                    showResult(data.message, false);
+                }
+            })
+            .catch(err => {
+                loading.classList.remove('show');
+                btn.disabled = false;
+                showResult('查询出错: ' + err.message, false);
+            });
+        }
+
+        function showResult(message, isSuccess) {
+            var resultBox = document.getElementById('resultBox');
+            resultBox.innerHTML = message;
+            resultBox.classList.remove('success', 'error');
+            resultBox.classList.add('show', isSuccess ? 'success' : 'error');
+        }
+
+        function openOutputDir() {
+            fetch('/open-output-dir')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('无法打开目录: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert('无法打开目录');
+                });
+        }
+
+        function openConfigModal() {
+            document.getElementById('configModal').classList.add('show');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.remove('show');
+        }
+
+        function saveConfig() {
+            var server = document.getElementById('config_server').value.trim();
+            var port = document.getElementById('config_port').value.trim();
+            var user = document.getElementById('config_user').value.trim();
+            var password = document.getElementById('config_password').value;
+            var database = document.getElementById('config_database').value.trim();
+            var outputDir = document.getElementById('config_output_dir').value.trim();
+
+            if (!server || !port || !user || !database || !outputDir) {
+                alert('请填写完整配置信息');
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('server', server);
+            formData.append('port', port);
+            formData.append('user', user);
+            formData.append('password', password);
+            formData.append('database', database);
+            formData.append('output_dir', outputDir);
+
+            fetch('/save-config', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('配置保存成功');
+                    closeConfigModal();
+                    loadConfig();
+                } else {
+                    alert('配置保存失败: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('配置保存出错: ' + err.message);
+            });
+        }
+
+        // 回车键提交
+        document.getElementById('name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                runQuery();
+            }
+        });
+    </script>
+</body>
+</html>
