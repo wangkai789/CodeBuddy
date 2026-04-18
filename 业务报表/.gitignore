@@ -21,3 +21,9 @@ logs/
 # Temp files
 *.tmp
 *.cache
+
+# PyInstaller
+*.spec
+
+# Query history (sensitive)
+query_history*.json
